@@ -12,6 +12,8 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import (
+    CONF_WEEKLY_HOURS,
+    DEFAULT_WEEKLY_HOURS,
     CONF_API_TOKEN,
     CONF_BASE_URL,
     CONF_MIN_HOURS,
@@ -85,6 +87,7 @@ class TempoWorklogConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         CONF_API_TOKEN: token,
                         CONF_BASE_URL: base_url,
                         CONF_MIN_HOURS: min_hours,
+                        CONF_WEEKLY_HOURS: float(user_input.get(CONF_WEEKLY_HOURS, DEFAULT_WEEKLY_HOURS)),
                     },
                 )
 
@@ -94,6 +97,7 @@ class TempoWorklogConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 {
                     vol.Required(CONF_API_TOKEN): str,
                     vol.Optional(CONF_BASE_URL, default=DEFAULT_BASE_URL): str,
+                    vol.Optional(CONF_WEEKLY_HOURS, default=DEFAULT_WEEKLY_HOURS): vol.Coerce(float),
                     vol.Optional(CONF_MIN_HOURS, default=DEFAULT_MIN_HOURS): vol.Coerce(float),
                 }
             ),
@@ -136,6 +140,7 @@ class TempoWorklogOptionsFlow(config_entries.OptionsFlow):
                         CONF_API_TOKEN: token,
                         CONF_BASE_URL: base_url,
                         CONF_MIN_HOURS: min_hours,
+                        CONF_WEEKLY_HOURS: float(user_input.get(CONF_WEEKLY_HOURS, DEFAULT_WEEKLY_HOURS)),
                     },
                 )
                 return self.async_create_entry(title="", data={})
@@ -152,6 +157,10 @@ class TempoWorklogOptionsFlow(config_entries.OptionsFlow):
                         CONF_BASE_URL,
                         default=current.get(CONF_BASE_URL, DEFAULT_BASE_URL),
                     ): str,
+                    vol.Optional(
+                        CONF_WEEKLY_HOURS,
+                        default=current.get(CONF_WEEKLY_HOURS, DEFAULT_WEEKLY_HOURS),
+                    ): vol.Coerce(float),
                     vol.Optional(
                         CONF_MIN_HOURS,
                         default=current.get(CONF_MIN_HOURS, DEFAULT_MIN_HOURS),

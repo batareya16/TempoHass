@@ -41,10 +41,7 @@ class TempoWorklogCard extends HTMLElement {
       ? `<span class="streak">${streak}-day streak 🔥</span>`
       : `<span class="streak muted">No streak yet</span>`;
 
-    // Today status chip
-    const todayChip = todayLogged
-      ? `<span class="chip green">Logged ✓</span>`
-      : `<span class="chip red">${Math.max(0, minHours - todayHours).toFixed(1)}h to go</span>`;
+    const todayIcon = todayLogged ? " ✓" : "";
 
     // Week dots
     const dots = weekDays.map(({ day_name, hours, logged, is_today, is_future }) => {
@@ -105,9 +102,6 @@ class TempoWorklogCard extends HTMLElement {
   .title  { font-size:15px; font-weight:500; color:var(--primary-text-color); display:flex; align-items:center; gap:6px; }
   .streak { font-size:12px; font-weight:500; color:#639922; }
   .streak.muted { color:var(--secondary-text-color); font-weight:400; }
-  .chip   { font-size:11px; font-weight:500; padding:2px 8px; border-radius:10px; }
-  .chip.green { background:#e8f5e9; color:#639922; }
-  .chip.red   { background:#fdecea; color:var(--error-color,#db4437); }
   .dots-row   { display:flex; gap:4px; margin-bottom:10px; }
   .month-row  { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
   .month-label { font-size:11px; color:var(--secondary-text-color); white-space:nowrap; }
@@ -146,7 +140,7 @@ class TempoWorklogCard extends HTMLElement {
   <div class="stats">
     <div class="stat">
       <div class="stat-l">Today</div>
-      <div class="stat-v">${todayHours}h ${todayChip}</div>
+      <div class="stat-v">${todayHours}h<span style="font-size:11px;color:var(--secondary-text-color);font-weight:400">${todayIcon}</span></div>
     </div>
     <div class="stat">
       <div class="stat-l">This week</div>
@@ -168,7 +162,9 @@ class TempoWorklogCard extends HTMLElement {
   }
 }
 
-customElements.define("tempo-worklog-card", TempoWorklogCard);
+if (!customElements.get("tempo-worklog-card")) {
+  customElements.define("tempo-worklog-card", TempoWorklogCard);
+}
 window.customCards = window.customCards || [];
 window.customCards.push({
   type: "tempo-worklog-card",

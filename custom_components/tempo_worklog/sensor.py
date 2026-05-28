@@ -15,8 +15,10 @@ from .const import (
     CONF_API_TOKEN,
     CONF_BASE_URL,
     CONF_MIN_HOURS,
+    CONF_WEEKLY_HOURS,
     DEFAULT_BASE_URL,
     DEFAULT_MIN_HOURS,
+    DEFAULT_WEEKLY_HOURS,
     DEFAULT_NAME,
     DOMAIN,
 )
@@ -35,6 +37,7 @@ async def async_setup_entry(
                 token=data[CONF_API_TOKEN],
                 base_url=data.get(CONF_BASE_URL, DEFAULT_BASE_URL),
                 min_hours=float(data.get(CONF_MIN_HOURS, DEFAULT_MIN_HOURS)),
+                weekly_hours=float(data.get(CONF_WEEKLY_HOURS, DEFAULT_WEEKLY_HOURS)),
                 entry_id=entry.entry_id,
             )
         ],
@@ -42,7 +45,7 @@ async def async_setup_entry(
     )
 
 
-def _count_required_hours(from_date: date, to_date: date) -> float:
+def _count_required_hours(from_date: date, to_date: date, weekly_hours: float = 40.0) -> float:
     """Count Mon-Fri days in range and multiply by 8h."""
     count = 0
     d = from_date
@@ -50,16 +53,17 @@ def _count_required_hours(from_date: date, to_date: date) -> float:
         if d.weekday() < 5:
             count += 1
         d += timedelta(days=1)
-    return float(count * 8)
+    return round(count * (weekly_hours / 5), 1)
 
 
 class TempoWorklogSensor(SensorEntity):
 
-    def __init__(self, hass, token, base_url, min_hours, entry_id):
+    def __init__(self, hass, token, base_url, min_hours, weekly_hours, entry_id):
         self._hass = hass
         self._token = token
         self._base_url = base_url.rstrip("/")
         self._min_hours = min_hours
+        self._weekly_hours = weekly_hours
         self._entry_id = entry_id
         self._state = None
         self._attributes = {}
@@ -100,9 +104,14 @@ class TempoWorklogSensor(SensorEntity):
         headers = {"Authorization": f"Bearer {self._token}"}
 
         try:
-            results = await self._fetch_all_worklogs(session, headers, fetch_from, fetch_to)
+            # Main request: month start → end of week (covers week dots + monthly stats + issues)
+            results = await self._fetch_worklogs(session, headers, month_start, fetch_to)
+            # Extra request for streak: up to 30 days before month start
+            if month_start > fetch_from:
+                prev_results = await self._fetch_worklogs(session, headers, fetch_from, month_start - timedelta(days=1))
+                results = prev_results + results
         except Exception as exc:
-            _LOGGER.error("Tempo API request failed: %s", exc)
+            _LOGGER.warning("Tempo API request failed: %s", exc)
             return
 
         # Aggregate
@@ -152,7 +161,7 @@ class TempoWorklogSensor(SensorEntity):
             if month_start.isoformat() <= ds <= today.isoformat()
         )
         month_hours = round(month_seconds / 3600, 1)
-        month_required = _count_required_hours(month_start, today)
+        month_required = _count_required_hours(month_start, today, self._weekly_hours)
 
         # Streak — consecutive working days going back
         streak = 0
@@ -192,37 +201,28 @@ class TempoWorklogSensor(SensorEntity):
             "days_logged_this_week": days_logged_week,
             "month_hours": month_hours,
             "month_required_hours": month_required,
+            "weekly_hours": self._weekly_hours,
             "streak": streak,
             "month_issues": top_issues_out,
             "friendly_name": self.name,
         }
 
-    async def _fetch_all_worklogs(self, session, headers, from_date, to_date):
-        results = []
-        offset = 0
-        limit = 1000
-        while True:
-            params = {
-                "from": from_date.isoformat(),
-                "to": to_date.isoformat(),
-                "limit": limit,
-                "offset": offset,
-            }
-            async with session.get(
-                f"{self._base_url}/worklogs",
-                headers=headers,
-                params=params,
-                timeout=aiohttp.ClientTimeout(total=15),
-            ) as resp:
-                if resp.status != 200:
-                    _LOGGER.error("Tempo API returned HTTP %s", resp.status)
-                    break
-                data = await resp.json()
-            batch = data.get("results", [])
-            results.extend(batch)
-            metadata = data.get("metadata", {})
-            total = metadata.get("count", len(results))
-            offset += len(batch)
-            if offset >= total or not batch:
-                break
+    async def _fetch_worklogs(self, session, headers, from_date, to_date):
+        """Single request, no pagination — same approach as v1 that worked."""
+        params = {
+            "from": from_date.isoformat(),
+            "to": to_date.isoformat(),
+            "limit": 1000,
+        }
+        async with session.get(
+            f"{self._base_url}/worklogs",
+            headers=headers,
+            params=params,
+            timeout=aiohttp.ClientTimeout(total=15),
+        ) as resp:
+            if resp.status != 200:
+                _LOGGER.warning("Tempo API returned HTTP %s", resp.status)
+                return []
+            data = await resp.json()
+        results = data.get("results", [])
         return results

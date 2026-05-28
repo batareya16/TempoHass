@@ -7,12 +7,14 @@
         "data": {
           "api_token": "API Token",
           "base_url": "API Base URL",
-          "min_hours": "Minimum hours to count as logged"
+          "weekly_hours": "Hours per week (target)",
+          "min_hours": "Min hours per day to count as logged"
         },
         "data_description": {
           "api_token": "Your personal Tempo API token",
           "base_url": "Leave default unless you use a self-hosted Tempo instance",
-          "min_hours": "Days with fewer hours than this will show as not logged (default: 4)"
+          "weekly_hours": "Your weekly target, e.g. 40. Used to calculate the monthly required hours.",
+          "min_hours": "A day with fewer hours than this shows as not logged (red dot). Default: 4."
         }
       }
     },
@@ -32,7 +34,8 @@
         "data": {
           "api_token": "API Token",
           "base_url": "API Base URL",
-          "min_hours": "Minimum hours to count as logged"
+          "weekly_hours": "Hours per week (target)",
+          "min_hours": "Min hours per day to count as logged"
         }
       }
     },
