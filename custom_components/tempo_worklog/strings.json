@@ -1,0 +1,45 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to Tempo",
+        "description": "Enter your Tempo API token. Get it from **Tempo → Settings → API Integration → New Token**.",
+        "data": {
+          "api_token": "API Token",
+          "base_url": "API Base URL",
+          "min_hours": "Minimum hours to count as logged"
+        },
+        "data_description": {
+          "api_token": "Your personal Tempo API token",
+          "base_url": "Leave default unless you use a self-hosted Tempo instance",
+          "min_hours": "Days with fewer hours than this will show as not logged (default: 4)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Cannot reach the Tempo API. Check the URL and your network.",
+      "invalid_token": "Invalid API token. Please check it in Tempo → Settings → API Integration.",
+      "unknown": "Unexpected error. Check the Home Assistant logs."
+    },
+    "abort": {
+      "already_configured": "Tempo Worklog is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Update Tempo settings",
+        "data": {
+          "api_token": "API Token",
+          "base_url": "API Base URL",
+          "min_hours": "Minimum hours to count as logged"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Cannot reach the Tempo API. Check the URL and your network.",
+      "invalid_token": "Invalid API token.",
+      "unknown": "Unexpected error."
+    }
+  }
+}
