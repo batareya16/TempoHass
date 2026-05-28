@@ -161,5 +161,5 @@ class TempoWorklogSensor(SensorEntity):
             "week_start_date": monday.isoformat(),
             "today_logged": today_logged,
             "days_logged_this_week": days_logged,
-            "friendly_name": self._name,
+            "friendly_name": self.name,
         }

@@ -28,22 +28,25 @@ async def _validate_token(hass: HomeAssistant, token: str, base_url: str) -> str
     Try a lightweight Tempo API call to check if the token is valid.
     Returns None on success, or an error key string on failure.
     """
+    from datetime import date
+
     session = async_get_clientsession(hass)
     headers = {"Authorization": f"Bearer {token}"}
     url = f"{base_url.rstrip('/')}/worklogs"
+    today = date.today().isoformat()
 
     try:
         async with session.get(
             url,
             headers=headers,
-            params={"limit": 1},
+            # Always send from/to — Tempo requires them to return 200
+            params={"from": today, "to": today, "limit": 1},
             timeout=aiohttp.ClientTimeout(total=10),
         ) as resp:
-            if resp.status == 401:
-                return "invalid_token"
-            if resp.status == 403:
+            if resp.status in (401, 403):
                 return "invalid_token"
             if resp.status not in (200, 204):
+                _LOGGER.error("Tempo validation returned HTTP %s", resp.status)
                 return "cannot_connect"
             return None
     except aiohttp.ClientConnectorError:
