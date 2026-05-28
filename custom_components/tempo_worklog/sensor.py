@@ -14,6 +14,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from .const import (
     CONF_API_TOKEN,
     CONF_BASE_URL,
+    CONF_ACCOUNT_ID,
     CONF_MIN_HOURS,
     CONF_WEEKLY_HOURS,
     DEFAULT_BASE_URL,
@@ -38,6 +39,7 @@ async def async_setup_entry(
                 base_url=data.get(CONF_BASE_URL, DEFAULT_BASE_URL),
                 min_hours=float(data.get(CONF_MIN_HOURS, DEFAULT_MIN_HOURS)),
                 weekly_hours=float(data.get(CONF_WEEKLY_HOURS, DEFAULT_WEEKLY_HOURS)),
+                account_id=data.get(CONF_ACCOUNT_ID, ""),
                 entry_id=entry.entry_id,
             )
         ],
@@ -58,12 +60,13 @@ def _count_required_hours(from_date: date, to_date: date, weekly_hours: float = 
 
 class TempoWorklogSensor(SensorEntity):
 
-    def __init__(self, hass, token, base_url, min_hours, weekly_hours, entry_id):
+    def __init__(self, hass, token, base_url, min_hours, weekly_hours, account_id, entry_id):
         self._hass = hass
         self._token = token
         self._base_url = base_url.rstrip("/")
         self._min_hours = min_hours
         self._weekly_hours = weekly_hours
+        self._account_id = account_id
         self._entry_id = entry_id
         self._state = None
         self._attributes = {}
@@ -119,6 +122,12 @@ class TempoWorklogSensor(SensorEntity):
         issue_data = {}
 
         for wl in results:
+            # Client-side filter: skip entries that don't belong to configured user
+            if self._account_id:
+                author_id = wl.get("author", {}).get("accountId", "")
+                if author_id != self._account_id:
+                    continue
+
             d = wl.get("startDate")
             secs = float(wl.get("timeSpentSeconds", 0))
             if d:
@@ -208,21 +217,41 @@ class TempoWorklogSensor(SensorEntity):
         }
 
     async def _fetch_worklogs(self, session, headers, from_date, to_date):
-        """Single request, no pagination — same approach as v1 that worked."""
+        """Fetch all worklogs using Tempo's metadata.next pagination."""
         params = {
             "from": from_date.isoformat(),
             "to": to_date.isoformat(),
             "limit": 1000,
         }
-        async with session.get(
-            f"{self._base_url}/worklogs",
-            headers=headers,
-            params=params,
-            timeout=aiohttp.ClientTimeout(total=15),
-        ) as resp:
-            if resp.status != 200:
-                _LOGGER.warning("Tempo API returned HTTP %s", resp.status)
-                return []
-            data = await resp.json()
-        results = data.get("results", [])
+
+        results = []
+        # Use user-specific endpoint when account_id is set — /worklogs doesn't support user filtering via params
+        if self._account_id:
+            url = f"{self._base_url}/worklogs/user/{self._account_id}"
+        else:
+            url = f"{self._base_url}/worklogs"
+
+        while url:
+            async with session.get(
+                url,
+                headers=headers,
+                params=params,
+                timeout=aiohttp.ClientTimeout(total=15),
+            ) as resp:
+                if resp.status != 200:
+                    _LOGGER.warning("Tempo API returned HTTP %s", resp.status)
+                    break
+                data = await resp.json()
+
+            batch = data.get("results", [])
+            results.extend(batch)
+
+            # Use Tempo's own next-page URL — most reliable pagination
+            next_url = data.get("metadata", {}).get("next")
+            if next_url:
+                url = next_url
+                params = {}  # next URL already contains all query params
+            else:
+                break
+
         return results

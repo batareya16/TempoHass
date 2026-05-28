@@ -3,24 +3,26 @@
     "step": {
       "user": {
         "title": "Connect to Tempo",
-        "description": "Enter your Tempo API token. Get it from **Tempo → Settings → API Integration → New Token**.",
+        "description": "Enter your Tempo API token. Get it from **Tempo \u2192 Settings \u2192 API Integration \u2192 New Token**.",
         "data": {
           "api_token": "API Token",
           "base_url": "API Base URL",
           "weekly_hours": "Hours per week (target)",
-          "min_hours": "Min hours per day to count as logged"
+          "min_hours": "Min hours per day to count as logged",
+          "account_id": "Jira Account ID"
         },
         "data_description": {
           "api_token": "Your personal Tempo API token",
           "base_url": "Leave default unless you use a self-hosted Tempo instance",
           "weekly_hours": "Your weekly target, e.g. 40. Used to calculate the monthly required hours.",
-          "min_hours": "A day with fewer hours than this shows as not logged (red dot). Default: 4."
+          "min_hours": "A day with fewer hours than this shows as not logged (red dot). Default: 4.",
+          "account_id": "Your Atlassian account ID. Find it in Jira \u2192 Profile \u2192 the ID in the URL (~accountId:XXXXX)"
         }
       }
     },
     "error": {
       "cannot_connect": "Cannot reach the Tempo API. Check the URL and your network.",
-      "invalid_token": "Invalid API token. Please check it in Tempo → Settings → API Integration.",
+      "invalid_token": "Invalid API token. Please check it in Tempo \u2192 Settings \u2192 API Integration.",
       "unknown": "Unexpected error. Check the Home Assistant logs."
     },
     "abort": {
@@ -35,7 +37,8 @@
           "api_token": "API Token",
           "base_url": "API Base URL",
           "weekly_hours": "Hours per week (target)",
-          "min_hours": "Min hours per day to count as logged"
+          "min_hours": "Min hours per day to count as logged",
+          "account_id": "Jira Account ID"
         }
       }
     },

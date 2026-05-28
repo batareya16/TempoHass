@@ -12,6 +12,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import (
+    CONF_ACCOUNT_ID,
     CONF_WEEKLY_HOURS,
     DEFAULT_WEEKLY_HOURS,
     CONF_API_TOKEN,
@@ -86,6 +87,7 @@ class TempoWorklogConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     data={
                         CONF_API_TOKEN: token,
                         CONF_BASE_URL: base_url,
+                        CONF_ACCOUNT_ID: user_input.get(CONF_ACCOUNT_ID, "").strip(),
                         CONF_MIN_HOURS: min_hours,
                         CONF_WEEKLY_HOURS: float(user_input.get(CONF_WEEKLY_HOURS, DEFAULT_WEEKLY_HOURS)),
                     },
@@ -96,6 +98,7 @@ class TempoWorklogConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             data_schema=vol.Schema(
                 {
                     vol.Required(CONF_API_TOKEN): str,
+                    vol.Required(CONF_ACCOUNT_ID): str,
                     vol.Optional(CONF_BASE_URL, default=DEFAULT_BASE_URL): str,
                     vol.Optional(CONF_WEEKLY_HOURS, default=DEFAULT_WEEKLY_HOURS): vol.Coerce(float),
                     vol.Optional(CONF_MIN_HOURS, default=DEFAULT_MIN_HOURS): vol.Coerce(float),
@@ -139,6 +142,7 @@ class TempoWorklogOptionsFlow(config_entries.OptionsFlow):
                     data={
                         CONF_API_TOKEN: token,
                         CONF_BASE_URL: base_url,
+                        CONF_ACCOUNT_ID: user_input.get(CONF_ACCOUNT_ID, "").strip(),
                         CONF_MIN_HOURS: min_hours,
                         CONF_WEEKLY_HOURS: float(user_input.get(CONF_WEEKLY_HOURS, DEFAULT_WEEKLY_HOURS)),
                     },
@@ -152,6 +156,10 @@ class TempoWorklogOptionsFlow(config_entries.OptionsFlow):
                     vol.Required(
                         CONF_API_TOKEN,
                         default=current.get(CONF_API_TOKEN, ""),
+                    ): str,
+                    vol.Required(
+                        CONF_ACCOUNT_ID,
+                        default=current.get(CONF_ACCOUNT_ID, ""),
                     ): str,
                     vol.Optional(
                         CONF_BASE_URL,
